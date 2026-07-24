@@ -82,14 +82,14 @@ footer{padding:24px 40px;color:var(--muted);font-size:12px;border-top:1px solid 
 <div id="lock">
   <div class="lock-card">
     <h1>Acceso al Pack Todo en Uno</h1>
-    <p class="lead">Ingresa tu correo y la clave de acceso que recibiste al pagar para ver tus enlaces de descarga.</p>
+    <p class="lead">Ingresa tu correo y la clave personal que te enviamos por WhatsApp al pagar. Cada clave está asociada a un solo correo.</p>
     <form id="form">
       <div class="field"><label>Correo del cliente</label><input id="email" type="email" placeholder="cliente@correo.com" autocomplete="email" required></div>
       <div class="field"><label>Clave de acceso</label><input id="pw" type="password" placeholder="Clave genérica" autocomplete="off" required></div>
       <button class="unlock" type="submit">Desbloquear acceso</button>
       <div class="err" id="err"></div>
     </form>
-    <div class="note">Área exclusiva para clientes que ya pagaron.</div>
+    <div class="note">Pagá por Mercado Pago, enviá el voucher por WhatsApp y te enviamos tu clave personal asociada a tu correo.</div>
   </div>
 </div>
 
@@ -119,22 +119,42 @@ footer{padding:24px 40px;color:var(--muted);font-size:12px;border-top:1px solid 
 </main>
 </div>
 <script>
-const KEY=atob("cGFja3RvZG8yMDI2");
+/* ====== ACCESOS AUTORIZADOS (correo → clave personal) ======
+   Cada cliente tiene UNA clave única asociada a SU correo.
+   Para habilitar a un cliente que pagó:
+     1) Inventá una clave (ej. "MARIA-7X2Q").
+     2) Agregá una línea:  "correo@cliente.com": "MARIA-7X2Q",
+     3) Volvé a desplegar (git push).
+   Nota: esta lista queda visible en el código fuente de la página.
+   Usá claves que NO reutilices en otros sitios. El contenido de los
+   enlaces ya está en el HTML (oculto tras el gate), así que esto es
+   sólo una barrera de obstrucción, no seguridad real. */
+const ACCESOS = {
+  // "cliente1@correo.com": "CLAVE1",
+  // "cliente2@correo.com": "CLAVE2"
+};
 const lock=document.getElementById('lock');
 const app=document.getElementById('app');
 const errEl=document.getElementById('err');
 function unlock(email){
-  document.getElementById('greet').textContent=email||'';
+  document.getElementById('greet').textContent=' '+email;
   lock.style.display='none'; app.style.display='block';
   try{localStorage.setItem('ptu_ok','1'); if(email)localStorage.setItem('ptu_email',email);}catch(e){}
 }
 function deny(){ errEl.style.display='block'; document.getElementById('pw').value=''; }
 document.getElementById('form').addEventListener('submit',function(e){
   e.preventDefault();
-  const email=document.getElementById('email').value.trim();
-  const pw=document.getElementById('pw').value;
+  const email=document.getElementById('email').value.trim().toLowerCase();
+  const pw=document.getElementById('pw').value.trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ errEl.textContent='Ingresa un correo válido.'; return deny(); }
-  if(pw.trim().toLowerCase()===KEY.toLowerCase()){ unlock(email); } else { errEl.textContent='Contraseña incorrecta. Si ya pagaste, usa la clave que te entregaron.'; deny(); }
+  const esperada=ACCESOS[email];
+  if(esperada && pw.toLowerCase()===esperada.toLowerCase()){
+    unlock(email);
+  } else if(esperada){
+    errEl.textContent='Clave incorrecta. Revisa la clave que te enviamos por WhatsApp.'; deny();
+  } else {
+    errEl.textContent='Ese correo no tiene acceso habilitado. Pagá por Mercado Pago y enviá el voucher por WhatsApp para recibir tu clave.'; deny();
+  }
 });
 document.getElementById('logout').addEventListener('click',function(){
   try{localStorage.removeItem('ptu_ok');localStorage.removeItem('ptu_email');}catch(e){}
